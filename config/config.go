@@ -1,9 +1,11 @@
 package config
 
 type Config struct {
-	Field1 string `mapstructure:"field1"`
-	Field2 string `mapstructure:"field2"`
-	Logrus Logrus `mapstructure:"logrus"`
+	ServerHost     string `mapstructure:"server_addr"`
+	ServerPort     string `mapstructure:"server_port"`
+	RedisServPort  string `mapstructure:"redis_serv_port"`
+	WithReflection bool   `mapstructure:"with_reflection"`
+	Logrus         Logrus `mapstructure:"logrus"`
 }
 
 type Logrus struct {

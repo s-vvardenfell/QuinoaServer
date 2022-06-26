@@ -1,7 +1,11 @@
 package main
 
-import "fmt"
+import "github.com/s-vvardenfell/QuinoaServer/cmd"
 
+/*
+
+
+*/
 func main() {
-	fmt.Println("QuionoaServer works!")
+	cmd.Execute()
 }

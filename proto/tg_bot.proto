@@ -1,0 +1,27 @@
+syntax= "proto3";
+
+package generated;
+option go_package = "./generated";
+
+message Conditions{  
+    string Type = 1;
+	repeated string Genres = 2;
+	string StartYear = 3;
+	string EndYear = 4;
+	repeated string Countries = 5;
+	string Keyword = 6;
+}
+
+message ParsedResult{
+    repeated ParsedData Data = 1;
+}
+
+message ParsedData{
+    string Name = 1;
+	string Ref = 2;
+	string Img = 3;
+}
+
+service QuinoaServer {
+    rpc GetParsedData(Conditions) returns (ParsedResult){}
+}

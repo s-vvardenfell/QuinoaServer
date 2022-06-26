@@ -3,10 +3,15 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 
 	"github.com/s-vvardenfell/QuinoaServer/config"
+	"github.com/s-vvardenfell/QuinoaServer/generated"
+	"github.com/s-vvardenfell/QuinoaServer/server"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -20,9 +25,23 @@ var rootCmd = &cobra.Command{
 	Use:   "boilerplate",
 	Short: "A brief description of your application",
 	Run: func(cmd *cobra.Command, args []string) {
-		// d, err := cmd.Flags().GetBool("debug")
-		// cobra.CheckErr(err)
+		grpcServ := grpc.NewServer()
+		qServ := server.NewServer(cnfg)
+		generated.RegisterMainServiceServer(grpcServ, qServ)
 
+		lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", cnfg.ServerHost, cnfg.ServerPort))
+		if err != nil {
+			logrus.Fatalf("failed to listen: %v", err)
+		}
+
+		if cnfg.WithReflection {
+			reflection.Register(grpcServ)
+		}
+
+		logrus.Info("Starting gRPC listener on port " + cnfg.ServerPort)
+		if err := grpcServ.Serve(lis); err != nil {
+			logrus.Fatalf("failed to serve: %v", err)
+		}
 	},
 }
 
@@ -37,7 +56,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is resources/config.yml)")
-	rootCmd.Flags().BoolP("debug", "d", false, "Runs in debug-mode")
+	// rootCmd.Flags().BoolP("debug", "d", false, "Runs in debug-mode")
 }
 
 func initConfig() {
