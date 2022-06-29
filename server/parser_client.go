@@ -10,7 +10,7 @@ import (
 
 //здесь дб ParserClient
 type ParserClient struct {
-	gen.RedisCacheServiceClient
+	gen.ParserServiceClient
 }
 
 func NewParserClient(host, port string) *ParserClient {
@@ -19,6 +19,6 @@ func NewParserClient(host, port string) *ParserClient {
 		logrus.Fatalf("cannot connect to host <%s> and port <%s>: %v", host, port, err)
 	}
 	return &ParserClient{
-		gen.NewRedisCacheServiceClient(conn),
+		gen.NewParserServiceClient(conn),
 	}
 }

@@ -50,5 +50,5 @@ service MainService {
 }
 
 service ParserService {
-    rpc GetParsedData(Conditions) returns (ParsedResults){}
+    rpc ParseData(Conditions) returns (ParsedResults){}
 }
