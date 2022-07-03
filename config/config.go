@@ -6,7 +6,7 @@ type Config struct {
 	ParserPort     string `mapstructure:"parser_port"`
 	RedisServPort  string `mapstructure:"redis_serv_port"`
 	WithReflection bool   `mapstructure:"with_reflection"`
-	ExpTime        int    `mapstructure:"exp_time"`
+	ExpTime        int64  `mapstructure:"exp_time"`
 	Logrus         Logrus `mapstructure:"logrus"`
 }
 

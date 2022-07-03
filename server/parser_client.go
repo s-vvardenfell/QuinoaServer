@@ -6,6 +6,7 @@ import (
 	gen "github.com/s-vvardenfell/QuinoaServer/generated"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type ParserClient struct {
@@ -13,7 +14,7 @@ type ParserClient struct {
 }
 
 func NewParserClient(host, port string) *ParserClient {
-	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", host, port), grpc.WithInsecure())
+	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", host, port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logrus.Fatalf("cannot connect to host <%s> and port <%s>: %v", host, port, err)
 	}

@@ -27,7 +27,7 @@ type QuinoaMainServer struct {
 	gen.UnimplementedMainServiceServer
 	rc      *RedisClient
 	pc      *ParserClient
-	expTime int
+	expTime int64
 }
 
 func NewServer(cnfg config.Config) *QuinoaMainServer {
@@ -106,7 +106,7 @@ func (q *QuinoaMainServer) GetParsedData(
 		logrus.Errorf("cannot marshall struct to json to store in cache, %v", err)
 	}
 
-	ok, err := q.rc.Set(ctx, &gen.Input{Key: hash, Val: string(json)}, q.expTime)
+	ok, err := q.rc.Set(ctx, &gen.Input{Key: hash, Val: string(json), Exp: q.expTime})
 	if err != nil {
 		logrus.Errorf("got error from redis while Set(), %v", err)
 	}
