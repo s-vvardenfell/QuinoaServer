@@ -25,14 +25,16 @@ type DataToCache struct {
 
 type QuinoaMainServer struct {
 	gen.UnimplementedMainServiceServer
-	rc *RedisClient
-	pc *ParserClient
+	rc      *RedisClient
+	pc      *ParserClient
+	expTime int
 }
 
 func NewServer(cnfg config.Config) *QuinoaMainServer {
 	return &QuinoaMainServer{
-		rc: NewRedisClient(cnfg.ServerHost, cnfg.RedisServPort),
-		pc: NewParserClient(cnfg.ServerHost, "50053"), //TODO занести в конфиг
+		rc:      NewRedisClient(cnfg.ServerHost, cnfg.RedisServPort),
+		pc:      NewParserClient(cnfg.ServerHost, cnfg.ParserPort),
+		expTime: cnfg.ExpTime,
 	}
 }
 
@@ -104,7 +106,7 @@ func (q *QuinoaMainServer) GetParsedData(
 		logrus.Errorf("cannot marshall struct to json to store in cache, %v", err)
 	}
 
-	ok, err := q.rc.Set(ctx, &gen.Input{Key: hash, Val: string(json)})
+	ok, err := q.rc.Set(ctx, &gen.Input{Key: hash, Val: string(json)}, q.expTime)
 	if err != nil {
 		logrus.Errorf("got error from redis while Set(), %v", err)
 	}

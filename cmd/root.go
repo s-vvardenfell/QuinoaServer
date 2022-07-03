@@ -22,9 +22,10 @@ var cfgFile string
 var cnfg config.Config
 
 var rootCmd = &cobra.Command{
-	Use:   "boilerplate",
-	Short: "A brief description of your application",
+	Use:   "QuinoaServer",
+	Short: "Server for Quinoa project that connects Parser, TgBot and Cache",
 	Run: func(cmd *cobra.Command, args []string) {
+		logrus.Info("QuinoaServar started!")
 		grpcServ := grpc.NewServer()
 		qServ := server.NewServer(cnfg)
 		generated.RegisterMainServiceServer(grpcServ, qServ)

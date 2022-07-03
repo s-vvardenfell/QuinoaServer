@@ -8,7 +8,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-//здесь дб ParserClient
 type ParserClient struct {
 	gen.ParserServiceClient
 }
