@@ -1,7 +1,11 @@
-field1: "some value"
-field2: "some another value"
-logrus:
+server_addr: localhost
+server_port: "port"
+parser_port: "port"
+redis_serv_port: "port"
+with_reflection: false
+exp_time: 60
+logrus: 
   log_level: 4
-  to_file: true
+  to_file: false
   to_json: false
   log_dir: "logs/logs.log"
