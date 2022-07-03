@@ -4,6 +4,9 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"strings"
 
 	"github.com/s-vvardenfell/QuinoaServer/config"
 	gen "github.com/s-vvardenfell/QuinoaServer/generated"
@@ -35,85 +38,82 @@ func NewServer(cnfg config.Config) *QuinoaMainServer {
 
 func (q *QuinoaMainServer) GetParsedData(
 	ctx context.Context, in *gen.Conditions) (*gen.ParsedResults, error) {
-	// res := generated.ParsedResult{
-	// 	Data: []*generated.ParsedData{{Name: "FilmName", Ref: "FilmRef", Img: "SmallImage"}},
-	// }
+	// если все условия не заполнены - ошибка
+	if in.Type == "" &&
+		in.Genres == nil &&
+		in.StartYear == "" &&
+		in.EndYear == "" &&
+		in.Keyword == "" &&
+		in.Countries == nil {
+		logrus.Error("got query with no conditions")
+		return nil, errors.New("no conditions")
+	}
 
-	// вычисляем хэш
-	// hash := getMD5Hash(in.String())
-	// fmt.Println("HASH: ", hash)
+	// вычисляем хэш условий запроса
+	hash := getMD5Hash(in.String())
 
-	// // hash = "d1ec4ea6edb766e3cde6534ea442f921" //TEST
-	// // проверяем кэшированые в редисе данные по этому ключу-хэшу
-	// cachedRes, err := q.rc.Get(ctx, &gen.Key{Key: hash})
+	// проверяем кэшированые в редисе данные по ключу-хэшу
+	cachedRes, err := q.rc.Get(ctx, &gen.Key{Key: hash})
+	if err != nil {
+		if strings.Contains(err.Error(), "does not exist") {
+			logrus.Infof("no cached results, %v", err)
+		} else {
+			logrus.Errorf("got error from redis while Get(), %v", err)
+		}
+	} else {
+		var cachedVals FilmsToCache
+		err = json.Unmarshal([]byte(cachedRes.Val), &cachedVals)
+		if err != nil {
+			logrus.Errorf("got error while unmarshalling cached values, %v", err)
+		}
 
-	// fmt.Println("DATA FROM REDIS:<<<<", cachedRes, ">>>>")
+		var res gen.ParsedResults
 
-	// // если ошибка, выводим в консоль и работаем дальше
-	// if err != nil {
-	// 	logrus.Warningf("got error from redis while Get(), %v", err)
-	// } else { //если ошибки нет и есть данные в редисе
-	// 	// здесь размаршалливаем в структуру FilmsToCache,
-	// 	// конвертим в ParsedResults и возвращаем
-	// 	return &gen.ParsedResults{
-	// 		Data: []*gen.ParsedData{{
-	// 			Name: "STUB-Name response from redis",
-	// 			Ref:  "STUB-Ref response from redis",
-	// 			Img:  "STUB-Img response from redis",
-	// 		},
-	// 		},
-	// 	}, nil
-	// }
+		for i := 0; i < len(cachedVals.Films); i++ {
+			res.Data = append(res.Data, &gen.ParsedData{
+				Name: cachedVals.Films[i].Name,
+				Ref:  cachedVals.Films[i].Ref,
+				Img:  cachedVals.Films[i].Img,
+			})
+		}
+		logrus.Info("parsing result succesfully got from cache")
+		return &res, nil
+	}
 
-	////////////////////////спрашиваем у парсера///////////////////////////
+	//спрашиваем у парсера
 	res, err := q.pc.ParseData(ctx, in)
 	if err != nil {
 		logrus.Errorf("got error from parser, %v", err)
 		return nil, err
 	}
-	//////////////////////////////////////////////////////////////////////
 
-	// pd := make([]*gen.ParsedData, 0)
-	// pd = append(pd, &gen.ParsedData{ //ЗАГЛУШКА
-	// 	Name: "Имя: " + in.Type + in.Genres[0],
-	// 	Ref:  "Ссылка: " + in.StartYear + in.EndYear,
-	// 	Img:  "Картинка: " + in.Keyword + in.Countries[0]})
+	// кэшируем
+	// преобразуем в json, чтобы потом распарсить
+	var cachedVals FilmsToCache
+	for i := range res.Data {
+		cachedVals.Films = append(cachedVals.Films,
+			DataToCache{
+				Name: res.Data[i].Name,
+				Ref:  res.Data[i].Ref,
+				Img:  res.Data[i].Img,
+			})
+	}
 
-	// res := gen.ParsedResults{
-	// 	Data: pd,
-	// }
+	json, err := json.Marshal(cachedVals)
+	if err != nil {
+		logrus.Errorf("cannot marshall struct to json to store in cache, %v", err)
+	}
 
-	// кэшируем в редис
-	// маршаллим в json, чтобы потом удобно получить
-	// var cache FilmsToCache
-	// cache.Films = make([]DataToCache, 0, len(pd))
+	ok, err := q.rc.Set(ctx, &gen.Input{Key: hash, Val: string(json)})
+	if err != nil {
+		logrus.Errorf("got error from redis while Set(), %v", err)
+	}
 
-	// for i := range pd {
-	// 	cache.Films = append(cache.Films, DataToCache{
-	// 		Name: pd[i].Name,
-	// 		Ref:  pd[i].Ref,
-	// 		Img:  pd[i].Img,
-	// 	})
-	// }
-
-	// jdata, err := json.Marshal(cache)
-	// if err != nil {
-	// 	logrus.Errorf("cannot convert FilmsToCache struct to json to store in Redis")
-	// 	//TODO а как обрабатываетс???
-	// }
-	// // кэшируем
-	// ok, err := q.rc.Set(ctx, &gen.Input{Key: hash, Val: string(jdata)})
-	// if err != nil {
-	// 	fmt.Printf("%T", err)
-	// 	logrus.Warningf("got error from redis while Set(), %v", err)
-	// }
-
-	// проверяем, что записано
-	// if !ok.Ok {
-	// 	logrus.Warningf("it's not OK, %v", err)
-	// } else {
-	// 	logrus.Warningf("it's OK, %v", err)
-	// }
+	if !ok.Ok {
+		logrus.Errorf("cannot cache value, %v", err)
+	} else {
+		logrus.Info("parsing result succesfully cached")
+	}
 
 	return res, nil
 }
